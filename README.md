@@ -10,7 +10,7 @@ The solution includes an automated script for data cleaning and optional MongoDB
 # Project Structure
 Database: DATA 
 Collections:
-users: Contains user data (initially 1000 documents, cleaned to 125 unique users).
+users: Contains user data  (1000 documents).
 
 transactions: Contains transaction data (initially 3000 documents, cleaned to 2392 valid transactions).
 
@@ -84,8 +84,6 @@ Aggregation Task 4: Users Without Transactions
 Result: Returned 20 users without transactions, e.g., Austin Glass, Jason Martinez, confirming accurate identification of inactive users.
 
 # Challenges and Assumptions:
-
-Addressed the initial user count discrepancy (1000 vs. 125) by assuming duplicates or import errors, resolved through cleaning to ensure unique _id values.
 
 Assumed data consistency post-separation and cleaning, ensuring all user_id references in transactions match _id in users.
 
