@@ -10,6 +10,7 @@ The solution includes an automated script for data cleaning and optional MongoDB
 # Project Structure
 Database: DATA 
 Collections:
+
 users: Contains user data  (1000 documents).
 
 transactions: Contains transaction data (initially 3000 documents, cleaned to 2392 valid transactions).
