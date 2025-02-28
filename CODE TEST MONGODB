@@ -1,3 +1,4 @@
+### PHASE 1 ###
 // Je supprime les collections existantes (si elles existent) pour éviter les doublons
 db.users.drop();
 db.transactions.drop();
@@ -119,6 +120,7 @@ db.transactions.find().limit(5)
   timestamp: '2024-11-02T15:41:56.024378',
   status: 'Invalid'
 }
+### PHASE 2 / ETAPE 1 ###
 db.users.updateMany(
     { $or: [
         { email: { $not: { $regex: /@.+\..+/ } } }, // Je filtre les emails sans @ et domaine valide
@@ -133,6 +135,7 @@ db.users.updateMany(
   modifiedCount: 87,
   upsertedCount: 0
 }
+### PHASE 2 / ETAPE 2 ###
 db.users.updateMany(
     { $or: [
         { phone: { $not: { $regex: /^\+213\d{9}$/ } } }, // Je vérifie que le téléphone commence par +213 et a 9 chiffres
@@ -148,6 +151,7 @@ db.users.updateMany(
   modifiedCount: 1000,
   upsertedCount: 0
 }
+### PHASE 2 / ETAPE 3 ###
 db.users.updateMany(
     { first_name: { $type: "number" } }, // Je filtre les noms numériques
     { $set: { first_name: "Unknown" } }
@@ -170,6 +174,7 @@ db.users.updateMany(
   modifiedCount: 49,
   upsertedCount: 0
 }
+### ( PHASE 2 / ETAPE 4 ) ###
 db.transactions.deleteMany(
     { $or: [
         { amount: { $lte: 0 } }, // Je filtre les montants négatifs ou nuls
@@ -180,6 +185,7 @@ db.transactions.deleteMany(
   acknowledged: true,
   deletedCount: 437
 }
+### ( PHASE 2 / ETAPE 5 ) ###
 db.transactions.deleteMany(
     { timestamp: { $exists: false } } // Je supprime les transactions sans timestamp
 );
@@ -187,6 +193,7 @@ db.transactions.deleteMany(
   acknowledged: true,
   deletedCount: 42
 }
+### ( PHASE 2 / ETAPE 6 ) ###
 db.transactions.updateMany(
     { status: { $nin: ["pending", "completed", "failed", "PENDING", "COMPLETED", "FAILED"] } }, // Je filtre les statuts non valides
     { $set: { status: "unknown" } }
@@ -198,6 +205,7 @@ db.transactions.updateMany(
   modifiedCount: 1770,
   upsertedCount: 0
 }
+### ( PHASE 2 / ETAPE 7 ) ###
 const validUserIds = db.users.distinct("_id"); // Je récupère tous les _id valides des utilisateurs
 db.transactions.deleteMany(
     { user_id: { $nin: validUserIds } } // Je supprime les transactions avec user_id invalides
@@ -206,7 +214,7 @@ db.transactions.deleteMany(
   acknowledged: true,
   deletedCount: 129
 }
-
+### ( PHASE 3 / ETAPE 1 ) ###
 db.transactions.aggregate([
     { $match: { amount: { $gt: 0 } } }, // Je filtre les montants positifs
     { $group: {
@@ -348,6 +356,7 @@ db.transactions.aggregate([
   last_name: 'Thompson'
 }
 Type "it" for more
+### ( PHASE 3 / ETAPE 2 ) ###
 db.transactions.aggregate([
     { $group: {
         _id: "$user_id",
@@ -488,6 +497,7 @@ db.transactions.aggregate([
   last_name: 'Castillo'
 }
 Type "it" for more
+### ( PHASE 3 / ETAPE 3 ) ###
 db.transactions.aggregate([
     { $group: {
         _id: "$status",
@@ -516,35 +526,7 @@ db.transactions.aggregate([
   status: 'PENDING',
   avg_amount: 242.14
 }
-
-db.transactions.aggregate([
-    { $group: {
-        _id: "$status",
-        count: { $sum: 1 }, // Je compte les occurrences par statut
-        avg_amount: { $avg: "$amount" } // Je calcule la moyenne des montants
-    }},
-    { $project: {
-        status: "$_id",
-        count: 1,
-        avg_amount: { $round: ["$avg_amount", 2] }, // Je rounded à 2 décimales
-        _id: 0 // Je supprime le champ _id
-    }}
-]);
-{
-  count: 354,
-  status: 'PENDING',
-  avg_amount: 242.14
-}
-{
-  count: 1681,
-  status: 'unknown',
-  avg_amount: 256.39
-}
-{
-  count: 357,
-  status: 'FAILED',
-  avg_amount: 250.43
-}
+### ( PHASE 3 / ETAPE 4 ) ###
 db.users.aggregate([
     { $lookup: {
         from: "transactions",
@@ -640,6 +622,9 @@ db.users.aggregate([
   last_name: 'Miller'
 }
 Type "it" for more
+
+### ( PHASE 4 ) ###
+
 // clean_data.js
 // Je nettoie les utilisateurs
 db.users.updateMany(
