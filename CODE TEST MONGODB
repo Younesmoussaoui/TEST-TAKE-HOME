@@ -1,0 +1,664 @@
+// Je supprime les collections existantes (si elles existent) pour éviter les doublons
+db.users.drop();
+db.transactions.drop();
+
+// Je parcours chaque document dans "users & transactions"
+db["users & transactions"].find().forEach(function(doc) {
+    // 1. Extraire les utilisateurs (champ "users")
+    if (doc.users && Array.isArray(doc.users)) {
+        // Je parcours chaque utilisateur dans le tableau "users"
+        doc.users.forEach(function(user) {
+            // Je supprime le champ "transactions" pour éviter la redondance
+            let cleanedUser = {
+                _id: user._id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                gender: user.gender,
+                phone: user.phone
+            };
+            // J’insère l’utilisateur nettoyé dans la collection "users"
+            db.users.insertOne(cleanedUser);
+        });
+    }
+
+    // 2. Extraire les transactions (champ "transactions")
+    if (doc.transactions && Array.isArray(doc.transactions)) {
+        // Je parcours chaque transaction dans le tableau "transactions"
+        doc.transactions.forEach(function(transaction) {
+            // Je vérifie si la transaction n’existe pas déjà dans db.transactions
+            if (!db.transactions.findOne({ _id: transaction._id })) {
+                // J’insère la transaction si elle n’existe pas
+                db.transactions.insertOne(transaction);
+            }
+        });
+    }
+});
+show collections
+transactions
+users
+users & transactions
+db.users.countDocuments()
+1000
+db.transactions.countDocuments()
+3000
+db.users.find().limit(5)
+{
+  _id: 'u1',
+  first_name: 'Patricia',
+  last_name: 'Rivers',
+  email: 'moorechristopher@example.net',
+  gender: 'Other',
+  phone: '473.326.7799'
+}
+{
+  _id: 'u2',
+  first_name: 'Rebekah',
+  last_name: 'Watts',
+  email: 'johnathandixon@example.org',
+  gender: 'None',
+  phone: '+1-841-910-0552x738'
+}
+{
+  _id: 'u3',
+  first_name: 'Glenn',
+  last_name: 'Costa',
+  email: 'fthornton@example.net',
+  gender: 'Female',
+  phone: '+12345678901234567890'
+}
+{
+  _id: 'u4',
+  first_name: 'Terrance',
+  last_name: 'Vargas',
+  email: 'johnhawkins@example.com',
+  gender: 'Male',
+  phone: '+1-662-899-0028x36983'
+}
+{
+  _id: 'u5',
+  first_name: 'Christy',
+  last_name: 'Martinez',
+  email: 'donna87@example.org',
+  gender: 'Unknown',
+  phone: '(455)402-6899x27376'
+}
+db.transactions.find().limit(5)
+{
+  _id: 't1',
+  user_id: 'u16',
+  amount: 483.22,
+  timestamp: '2024-10-24T15:41:56.024309',
+  status: 'SUCCESS'
+}
+{
+  _id: 't2',
+  user_id: 'u247',
+  amount: -17.64,
+  timestamp: '2024-12-05T15:41:56.024344',
+  status: 'None'
+}
+{
+  _id: 't3',
+  user_id: 'u484',
+  amount: 18.73,
+  timestamp: '2024-11-17T15:41:56.024359',
+  status: 'FAILED'
+}
+{
+  _id: 't4',
+  user_id: 'u403',
+  amount: 127.74,
+  timestamp: '2024-11-12T15:41:56.024369',
+  status: 'FAILED'
+}
+{
+  _id: 't5',
+  user_id: 'u604',
+  amount: 384.01,
+  timestamp: '2024-11-02T15:41:56.024378',
+  status: 'Invalid'
+}
+db.users.updateMany(
+    { $or: [
+        { email: { $not: { $regex: /@.+\..+/ } } }, // Je filtre les emails sans @ et domaine valide
+        { email: { $exists: false } } // Je gère les emails manquants
+    ]},
+    { $set: { email: "unknown@example.com" } }
+);
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 87,
+  modifiedCount: 87,
+  upsertedCount: 0
+}
+db.users.updateMany(
+    { $or: [
+        { phone: { $not: { $regex: /^\+213\d{9}$/ } } }, // Je vérifie que le téléphone commence par +213 et a 9 chiffres
+        { phone: "" },
+        { phone: { $exists: false } }
+    ]},
+    { $set: { phone: "+213000000000" } }
+);
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1000,
+  modifiedCount: 1000,
+  upsertedCount: 0
+}
+db.users.updateMany(
+    { first_name: { $type: "number" } }, // Je filtre les noms numériques
+    { $set: { first_name: "Unknown" } }
+);
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 61,
+  modifiedCount: 61,
+  upsertedCount: 0
+}
+db.users.updateMany(
+    { last_name: { $type: "number" } }, // Je filtre les noms de famille numériques
+    { $set: { last_name: "Unknown" } }
+);
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 49,
+  modifiedCount: 49,
+  upsertedCount: 0
+}
+db.transactions.deleteMany(
+    { $or: [
+        { amount: { $lte: 0 } }, // Je filtre les montants négatifs ou nuls
+        { amount: { $exists: false } } // Je gère les montants manquants
+    ]}
+);
+{
+  acknowledged: true,
+  deletedCount: 437
+}
+db.transactions.deleteMany(
+    { timestamp: { $exists: false } } // Je supprime les transactions sans timestamp
+);
+{
+  acknowledged: true,
+  deletedCount: 42
+}
+db.transactions.updateMany(
+    { status: { $nin: ["pending", "completed", "failed", "PENDING", "COMPLETED", "FAILED"] } }, // Je filtre les statuts non valides
+    { $set: { status: "unknown" } }
+);
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1770,
+  modifiedCount: 1770,
+  upsertedCount: 0
+}
+const validUserIds = db.users.distinct("_id"); // Je récupère tous les _id valides des utilisateurs
+db.transactions.deleteMany(
+    { user_id: { $nin: validUserIds } } // Je supprime les transactions avec user_id invalides
+);
+{
+  acknowledged: true,
+  deletedCount: 129
+}
+
+db.transactions.aggregate([
+    { $match: { amount: { $gt: 0 } } }, // Je filtre les montants positifs
+    { $group: {
+        _id: "$user_id",
+        total_spent: { $sum: "$amount" } // Je somme les montants par user_id
+    }},
+    { $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user_info" // Je joins avec la collection users pour obtenir les noms
+    }},
+    { $unwind: "$user_info" }, // Je décompose le tableau user_info
+    { $project: {
+        first_name: "$user_info.first_name",
+        last_name: "$user_info.last_name",
+        total_spent: 1 // Je projette les champs demandés
+    }},
+    { $sort: { total_spent: -1 } } // Je trie par total_spent en ordre décroissant
+]);
+{
+  _id: 'u709',
+  total_spent: 2972.07,
+  first_name: 'Jason',
+  last_name: 'Singh'
+}
+{
+  _id: 'u747',
+  total_spent: 2672.93,
+  first_name: 'Lauren',
+  last_name: 'Johnson'
+}
+{
+  _id: 'u459',
+  total_spent: 2624.96,
+  first_name: 'Angela',
+  last_name: 'Williams'
+}
+{
+  _id: 'u134',
+  total_spent: 2437.1,
+  first_name: 'Jennifer',
+  last_name: 'Martinez'
+}
+{
+  _id: 'u301',
+  total_spent: 2285.95,
+  first_name: 'Benjamin',
+  last_name: 'Eaton'
+}
+{
+  _id: 'u287',
+  total_spent: 2233.06,
+  first_name: 'Timothy',
+  last_name: 'Adams'
+}
+{
+  _id: 'u629',
+  total_spent: 2166.58,
+  first_name: 'Christina',
+  last_name: 'Silva'
+}
+{
+  _id: 'u193',
+  total_spent: 2155.74,
+  first_name: 'Pamela',
+  last_name: 'Hernandez'
+}
+{
+  _id: 'u133',
+  total_spent: 2092.59,
+  first_name: 'Caroline',
+  last_name: 'Davis'
+}
+{
+  _id: 'u504',
+  total_spent: 2053.99,
+  first_name: 'Jackie',
+  last_name: 'Juarez'
+}
+{
+  _id: 'u975',
+  total_spent: 1953.9,
+  first_name: 'Cynthia',
+  last_name: 'Smith'
+}
+{
+  _id: 'u878',
+  total_spent: 1946.04,
+  first_name: 'Adam',
+  last_name: 'Lyons'
+}
+{
+  _id: 'u932',
+  total_spent: 1915.15,
+  first_name: 'Annette',
+  last_name: 'Duran'
+}
+{
+  _id: 'u203',
+  total_spent: 1914.28,
+  first_name: 'Ronnie',
+  last_name: 'James'
+}
+{
+  _id: 'u433',
+  total_spent: 1912.6,
+  first_name: 'Reginald',
+  last_name: 'Bailey'
+}
+{
+  _id: 'u288',
+  total_spent: 1898.82,
+  first_name: 'Joseph',
+  last_name: 'Sullivan'
+}
+{
+  _id: 'u714',
+  total_spent: 1856.32,
+  first_name: 'Kimberly',
+  last_name: 'Barker'
+}
+{
+  _id: 'u262',
+  total_spent: 1773.42,
+  first_name: 'Edward',
+  last_name: 'Wilson'
+}
+{
+  _id: 'u812',
+  total_spent: 1770.3,
+  first_name: 'Kristina',
+  last_name: 'Gomez'
+}
+{
+  _id: 'u139',
+  total_spent: 1767.82,
+  first_name: 'Rodney',
+  last_name: 'Thompson'
+}
+Type "it" for more
+db.transactions.aggregate([
+    { $group: {
+        _id: "$user_id",
+        transaction_count: { $sum: 1 } // Je compte le nombre de transactions par user_id
+    }},
+    { $match: { transaction_count: { $gte: 3 } } }, // Je filtre ceux avec 3+ transactions
+    { $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user_info" // Je joins avec users pour obtenir les noms
+    }},
+    { $unwind: "$user_info" }, // Je décompose user_info
+    { $project: {
+        first_name: "$user_info.first_name",
+        last_name: "$user_info.last_name",
+        transaction_count: 1 // Je projette les champs demandés
+    }}
+]);
+{
+  _id: 'u718',
+  transaction_count: 3,
+  first_name: 'Jessica',
+  last_name: 'Unknown'
+}
+{
+  _id: 'u904',
+  transaction_count: 6,
+  first_name: 'William',
+  last_name: 'Roberts'
+}
+{
+  _id: 'u61',
+  transaction_count: 3,
+  first_name: 'Unknown',
+  last_name: 'Hart'
+}
+{
+  _id: 'u767',
+  transaction_count: 3,
+  first_name: 'Jennifer',
+  last_name: 'Richardson'
+}
+{
+  _id: 'u484',
+  transaction_count: 5,
+  first_name: 'Amanda',
+  last_name: 'Andrews'
+}
+{
+  _id: 'u670',
+  transaction_count: 4,
+  first_name: 'Vincent',
+  last_name: 'Murphy'
+}
+{
+  _id: 'u884',
+  transaction_count: 6,
+  first_name: 'Darlene',
+  last_name: 'Hoffman'
+}
+{
+  _id: 'u391',
+  transaction_count: 3,
+  first_name: 'Unknown',
+  last_name: 'Long'
+}
+{
+  _id: 'u655',
+  transaction_count: 3,
+  first_name: 'Unknown',
+  last_name: 'Bass'
+}
+{
+  _id: 'u287',
+  transaction_count: 7,
+  first_name: 'Timothy',
+  last_name: 'Adams'
+}
+{
+  _id: 'u744',
+  transaction_count: 3,
+  first_name: 'Alyssa',
+  last_name: 'Lee'
+}
+{
+  _id: 'u807',
+  transaction_count: 4,
+  first_name: 'Anthony',
+  last_name: 'Reynolds'
+}
+{
+  _id: 'u917',
+  transaction_count: 3,
+  first_name: 'Michelle',
+  last_name: 'Johnson'
+}
+{
+  _id: 'u840',
+  transaction_count: 4,
+  first_name: 'Roy',
+  last_name: 'Carpenter'
+}
+{
+  _id: 'u472',
+  transaction_count: 3,
+  first_name: 'David',
+  last_name: 'Warren'
+}
+{
+  _id: 'u153',
+  transaction_count: 3,
+  first_name: 'Kristy',
+  last_name: 'Frost'
+}
+{
+  _id: 'u305',
+  transaction_count: 3,
+  first_name: 'Anthony',
+  last_name: 'Kent'
+}
+{
+  _id: 'u314',
+  transaction_count: 3,
+  first_name: 'Paul',
+  last_name: 'Clark'
+}
+{
+  _id: 'u306',
+  transaction_count: 4,
+  first_name: 'Robert',
+  last_name: 'Morales'
+}
+{
+  _id: 'u679',
+  transaction_count: 3,
+  first_name: 'Chase',
+  last_name: 'Castillo'
+}
+Type "it" for more
+db.transactions.aggregate([
+    { $group: {
+        _id: "$status",
+        count: { $sum: 1 }, // Je compte les occurrences par statut
+        avg_amount: { $avg: "$amount" } // Je calcule la moyenne des montants
+    }},
+    { $project: {
+        status: "$_id",
+        count: 1,
+        avg_amount: { $round: ["$avg_amount", 2] }, // Je rounded à 2 décimales
+        _id: 0 // Je supprime le champ _id
+    }}
+]);
+{
+  count: 1681,
+  status: 'unknown',
+  avg_amount: 256.39
+}
+{
+  count: 357,
+  status: 'FAILED',
+  avg_amount: 250.43
+}
+{
+  count: 354,
+  status: 'PENDING',
+  avg_amount: 242.14
+}
+
+db.transactions.aggregate([
+    { $group: {
+        _id: "$status",
+        count: { $sum: 1 }, // Je compte les occurrences par statut
+        avg_amount: { $avg: "$amount" } // Je calcule la moyenne des montants
+    }},
+    { $project: {
+        status: "$_id",
+        count: 1,
+        avg_amount: { $round: ["$avg_amount", 2] }, // Je rounded à 2 décimales
+        _id: 0 // Je supprime le champ _id
+    }}
+]);
+{
+  count: 354,
+  status: 'PENDING',
+  avg_amount: 242.14
+}
+{
+  count: 1681,
+  status: 'unknown',
+  avg_amount: 256.39
+}
+{
+  count: 357,
+  status: 'FAILED',
+  avg_amount: 250.43
+}
+db.users.aggregate([
+    { $lookup: {
+        from: "transactions",
+        localField: "_id",
+        foreignField: "user_id",
+        as: "transactions" // Je joins avec transactions pour vérifier les transactions
+    }},
+    { $match: { transactions: { $size: 0 } } }, // Je filtre les utilisateurs sans transactions
+    { $project: {
+        first_name: 1,
+        last_name: 1, // Je projette les noms
+        _id: 0 // Je supprime le champ _id
+    }}
+]);
+{
+  first_name: 'Austin',
+  last_name: 'Glass'
+}
+{
+  first_name: 'Jason',
+  last_name: 'Martinez'
+}
+{
+  first_name: 'Karina',
+  last_name: 'Williams'
+}
+{
+  first_name: 'Diane',
+  last_name: 'Morris'
+}
+{
+  first_name: 'Lawrence',
+  last_name: 'Cook'
+}
+{
+  first_name: 'Gabriela',
+  last_name: 'Johnson'
+}
+{
+  first_name: 'Timothy',
+  last_name: 'Oliver'
+}
+{
+  first_name: 'David',
+  last_name: 'Mendez'
+}
+{
+  first_name: 'Derek',
+  last_name: 'Moore'
+}
+{
+  first_name: 'Jonathon',
+  last_name: 'Cook'
+}
+{
+  first_name: 'Jeffrey',
+  last_name: 'Martinez'
+}
+{
+  first_name: 'Nicholas',
+  last_name: 'Smith'
+}
+{
+  first_name: 'Faith',
+  last_name: 'Reed'
+}
+{
+  first_name: 'Jack',
+  last_name: 'Davis'
+}
+{
+  first_name: 'William',
+  last_name: 'Collins'
+}
+{
+  first_name: 'Corey',
+  last_name: 'Taylor'
+}
+{
+  first_name: 'Patrick',
+  last_name: 'Lopez'
+}
+{
+  first_name: 'Veronica',
+  last_name: 'Klein'
+}
+{
+  first_name: 'Lisa',
+  last_name: 'Crosby'
+}
+{
+  first_name: 'Melanie',
+  last_name: 'Miller'
+}
+Type "it" for more
+// clean_data.js
+// Je nettoie les utilisateurs
+db.users.updateMany(
+    { $or: [{ email: { $not: { $regex: /@.+\..+/ } } }, { email: { $exists: false } }] },
+    { $set: { email: "unknown@example.com" } }
+);
+db.users.updateMany(
+    { $or: [{ phone: { $not: { $regex: /^\+213\d{9}$/ } } }, { phone: "" }, { phone: { $exists: false } }] },
+    { $set: { phone: "+213000000000" } }
+);
+db.users.updateMany({ first_name: { $type: "number" } }, { $set: { first_name: "Unknown" } });
+db.users.updateMany({ last_name: { $type: "number" } }, { $set: { last_name: "Unknown" } });
+
+// Je nettoie les transactions
+db.transactions.deleteMany({ $or: [{ amount: { $lte: 0 } }, { amount: { $exists: false } }] });
+db.transactions.deleteMany({ timestamp: { $exists: false } });
+db.transactions.updateMany(
+    { status: { $nin: ["pending", "completed", "failed", "PENDING", "COMPLETED", "FAILED"] } },
+    { $set: { status: "unknown" } }
+);
+const validUserIds = db.users.distinct("_id");
+db.transactions.deleteMany({ user_id: { $nin: validUserIds } });
